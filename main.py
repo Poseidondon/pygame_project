@@ -4,49 +4,56 @@ import math
 
 
 class Particle(pygame.sprite.Sprite):
-    def __init__(self, pos, radius, dir=None, speed=None, vx=None, vy=None):
+    def __init__(self, pos, radius, dir=None, speed=None, range=None):
         super().__init__(all_sprites)
-        self.image = pygame.Surface((2 * radius, 2 * radius), pygame.SRCALPHA, 32)
+        self.image = pygame.Surface((2 * radius, 2 * radius), pygame.SRCALPHA)
         self.rect = self.image.get_rect()
         self.rect.x, self.rect.y = pos[0] - radius, pos[1] - radius
         self.clock = pygame.time.Clock()
-        pygame.draw.circle(self.image, (255, 100, 0), (radius, radius), radius)
+        self.spawn_time = pygame.time.get_ticks()
+        pygame.draw.circle(self.image, (150, 150, 150), (radius, radius), radius)
 
         self.float_pos = self.float_x, self.float_y = pos[0], pos[1]
         self.radius = radius
-        if dir and speed:
-            self.dir = dir
-            dir = (dir + 90) % 360
-            self.vx = (math.cos(math.radians(dir)) * speed)
-            self.vy = math.sin(math.radians(dir)) * speed
-            self.speed = math.hypot(self.vx, self.vy)
-        elif vx and vy:
-            self.vx = vx
-            self.vy = vy
-            self.speed = math.hypot(self.vx, self.vy)
+
+        if range:
+            angle = random.randint(-range / 2, range / 2)
         else:
-            print('Particle error!')
+            angle = 0
+        self.dir = dir
+        dir = (dir + 90 + angle) % 360
+        self.vx = -(math.cos(math.radians(dir)) * speed)
+        self.vy = math.sin(math.radians(dir)) * speed
+        self.speed = math.hypot(self.vx, self.vy)
 
     def update(self):
         time = self.clock.tick() / 1000
+        lifetime = pygame.time.get_ticks() - self.spawn_time
 
         self.float_x += self.vx * time
         self.float_y -= self.vy * time
-        self.rect.x = self.float_x
-        self.rect.y = self.float_y
+        self.rect.x = self.float_x - self.radius
+        self.rect.y = self.float_y - self.radius
+
+        if not (self.rect.x in range(-self.radius, width + self.radius)
+                and self.rect.y in range(-self.radius, height + self.radius)):
+            self.kill()
+        if lifetime > 600:
+            self.kill()
 
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, x, y, radius):
+    def __init__(self, x, y, radius, collider=False):
         super().__init__(all_sprites)
         self.radius = radius
         self.clock = pygame.time.Clock()
+        self.collider = collider
         self.k = 1.4
-        self.image = pygame.Surface((2 * radius * self.k, 2 * radius * self.k), pygame.SRCALPHA, 32)
+        self.image = pygame.Surface((2 * radius * self.k, 2 * radius * self.k), pygame.SRCALPHA)
         self.rect = self.image.get_rect()
+        self.particle_point = (0, 0)
         self.setDir(0)
 
-        self.particle_point = (0, 0)
         self.float_pos = self.float_x, self.float_y = x, y
         self.vx = self.vy = 0
         self.speed = 0
@@ -54,7 +61,7 @@ class Player(pygame.sprite.Sprite):
         self.rot_speed = 0
         self.dir = 0
 
-        self.forward_accelerate = 150
+        self.forward_accelerate = 250
         self.backward_accelerate = -50
         self.max_rot_speed = 180
         self.max_speed = 250
@@ -78,10 +85,11 @@ class Player(pygame.sprite.Sprite):
                      self.radius * self.k + math.sin(math.radians(angle - 150)) * r)]
         pygame.draw.polygon(self.image, (100, 0, 0), points_1)
         pygame.draw.polygon(self.image, (255, 0, 0), points_2)
-        pygame.draw.circle(self.image, (0, 255, 0),
-                           (int(self.radius * self.k), int(self.radius * self.k)), self.radius, 1)
-        self.particle_point = (self.radius * self.k + math.cos(math.radians((angle + 180) % 360)) * self.radius,
-                               self.radius * self.k + math.sin(math.radians((angle + 180) % 360)) * self.radius)
+        if self.collider:
+            pygame.draw.circle(self.image, (0, 255, 0),
+                               (int(self.radius * self.k), int(self.radius * self.k)), self.radius, 1)
+        self.particle_point = (self.radius * self.k + math.cos(math.radians((angle+180) % 360)) * self.radius * self.k,
+                               self.radius * self.k + math.sin(math.radians((angle+180) % 360)) * self.radius * self.k)
 
     def addVector(self, force, dir=None):
         if not dir:
@@ -99,6 +107,9 @@ class Player(pygame.sprite.Sprite):
             self.setDir(self.dir)
         if self.accelerate:
             self.addVector(self.accelerate * time, self.dir)
+            if self.accelerate > 0:
+                Particle(pos=(self.particle_point[0] + self.rect.x, self.particle_point[1] + self.rect.y),
+                         radius=random.randint(5, 10), dir=(self.dir + 180) % 360, speed=100, range=90)
         else:
             if self.speed < 3:
                 self.speed = self.vx = self.vy = 0
@@ -123,21 +134,26 @@ class Player(pygame.sprite.Sprite):
         self.rect.x = self.float_x
         self.rect.y = self.float_y
 
-        Particle(pos=(self.particle_point[0] + self.rect.x, self.particle_point[1] + self.rect.y),
-                 radius=random.randint(1, 5), dir=(self.dir + 180) % 360, speed=30)
+
+def show_fps():
+    fps = FPS_FONT.render(f'FPS: {int(clock.get_fps())}', 1, (0, 0, 0))
+    screen.blit(fps, (width - fps.get_width() - 5, 10))
 
 
 pygame.init()
-size = width, height = (800, 600)
+size = width, height = (1024, 768)
 screen = pygame.display.set_mode(size)
 all_sprites = pygame.sprite.Group()
+
+clock = pygame.time.Clock()
+FPS_FONT = pygame.font.Font(None, 18)
 
 player = Player(400, 300, 16)
 
 running = True
 
 while running:
-    screen.fill((155, 155, 155))
+    screen.fill((255, 255, 255))
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -164,6 +180,8 @@ while running:
 
     all_sprites.draw(screen)
     all_sprites.update()
+    show_fps()
+    clock.tick()
     pygame.display.flip()
 
 pygame.quit()
