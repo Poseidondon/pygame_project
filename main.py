@@ -3,15 +3,50 @@ import random
 import math
 
 
+class Particle(pygame.sprite.Sprite):
+    def __init__(self, pos, radius, dir=None, speed=None, vx=None, vy=None):
+        super().__init__(all_sprites)
+        self.image = pygame.Surface((2 * radius, 2 * radius), pygame.SRCALPHA, 32)
+        self.rect = self.image.get_rect()
+        self.rect.x, self.rect.y = pos[0] - radius, pos[1] - radius
+        self.clock = pygame.time.Clock()
+        pygame.draw.circle(self.image, (255, 100, 0), (radius, radius), radius)
+
+        self.float_pos = self.float_x, self.float_y = pos[0], pos[1]
+        self.radius = radius
+        if dir and speed:
+            self.dir = dir
+            dir = (dir + 90) % 360
+            self.vx = (math.cos(math.radians(dir)) * speed)
+            self.vy = math.sin(math.radians(dir)) * speed
+            self.speed = math.hypot(self.vx, self.vy)
+        elif vx and vy:
+            self.vx = vx
+            self.vy = vy
+            self.speed = math.hypot(self.vx, self.vy)
+        else:
+            print('Particle error!')
+
+    def update(self):
+        time = self.clock.tick() / 1000
+
+        self.float_x += self.vx * time
+        self.float_y -= self.vy * time
+        self.rect.x = self.float_x
+        self.rect.y = self.float_y
+
+
 class Player(pygame.sprite.Sprite):
     def __init__(self, x, y, radius):
         super().__init__(all_sprites)
         self.radius = radius
         self.clock = pygame.time.Clock()
-        self.image = pygame.Surface((2 * radius, 2 * radius), pygame.SRCALPHA, 32)
-        self.rect = pygame.Rect(x - radius, y - radius, radius * 2, radius * 2)
+        self.k = 1.4
+        self.image = pygame.Surface((2 * radius * self.k, 2 * radius * self.k), pygame.SRCALPHA, 32)
+        self.rect = self.image.get_rect()
         self.setDir(0)
 
+        self.particle_point = (0, 0)
         self.float_pos = self.float_x, self.float_y = x, y
         self.vx = self.vy = 0
         self.speed = 0
@@ -29,20 +64,24 @@ class Player(pygame.sprite.Sprite):
         self.image.fill(pygame.SRCALPHA)
         angle = (angle - 90) % 360
         r = self.radius * 0.6
-        points_1 = [(self.radius + math.cos(math.radians(angle)) * self.radius,
-                     self.radius + math.sin(math.radians(angle)) * self.radius),
-                    (self.radius + math.cos(math.radians(angle + 150)) * self.radius,
-                     self.radius + math.sin(math.radians(angle + 150)) * self.radius),
-                    (self.radius + math.cos(math.radians(angle - 150)) * self.radius,
-                     self.radius + math.sin(math.radians(angle - 150)) * self.radius)]
-        points_2 = [(self.radius + math.cos(math.radians(angle)) * r,
-                     self.radius + math.sin(math.radians(angle)) * r),
-                    (self.radius + math.cos(math.radians(angle + 150)) * r,
-                     self.radius + math.sin(math.radians(angle + 150)) * r),
-                    (self.radius + math.cos(math.radians(angle - 150)) * r,
-                     self.radius + math.sin(math.radians(angle - 150)) * r)]
+        points_1 = [(self.radius * self.k + math.cos(math.radians(angle)) * self.radius * self.k,
+                     self.radius * self.k + math.sin(math.radians(angle)) * self.radius * self.k),
+                    (self.radius * self.k + math.cos(math.radians(angle + 150)) * self.radius * self.k,
+                     self.radius * self.k + math.sin(math.radians(angle + 150)) * self.radius * self.k),
+                    (self.radius * self.k + math.cos(math.radians(angle - 150)) * self.radius * self.k,
+                     self.radius * self.k + math.sin(math.radians(angle - 150)) * self.radius * self.k)]
+        points_2 = [(self.radius * self.k + math.cos(math.radians(angle)) * r,
+                     self.radius * self.k + math.sin(math.radians(angle)) * r),
+                    (self.radius * self.k + math.cos(math.radians(angle + 150)) * r,
+                     self.radius * self.k + math.sin(math.radians(angle + 150)) * r),
+                    (self.radius * self.k + math.cos(math.radians(angle - 150)) * r,
+                     self.radius * self.k + math.sin(math.radians(angle - 150)) * r)]
         pygame.draw.polygon(self.image, (100, 0, 0), points_1)
         pygame.draw.polygon(self.image, (255, 0, 0), points_2)
+        pygame.draw.circle(self.image, (0, 255, 0),
+                           (int(self.radius * self.k), int(self.radius * self.k)), self.radius, 1)
+        self.particle_point = (self.radius * self.k + math.cos(math.radians((angle + 180) % 360)) * self.radius,
+                               self.radius * self.k + math.sin(math.radians((angle + 180) % 360)) * self.radius)
 
     def addVector(self, force, dir=None):
         if not dir:
@@ -83,6 +122,9 @@ class Player(pygame.sprite.Sprite):
         self.float_y -= self.vy * time
         self.rect.x = self.float_x
         self.rect.y = self.float_y
+
+        Particle(pos=(self.particle_point[0] + self.rect.x, self.particle_point[1] + self.rect.y),
+                 radius=random.randint(1, 5), dir=(self.dir + 180) % 360, speed=30)
 
 
 pygame.init()
