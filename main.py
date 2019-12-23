@@ -4,7 +4,7 @@ import math
 
 
 class Particle(pygame.sprite.Sprite):
-    def __init__(self, pos, radius, dir=None, speed=None, range=None):
+    def __init__(self, pos, radius, dir=None, speed=None, range=None, max_lifetime=None, increase=None):
         super().__init__(all_sprites)
         self.image = pygame.Surface((2 * radius, 2 * radius), pygame.SRCALPHA)
         self.rect = self.image.get_rect()
@@ -15,6 +15,8 @@ class Particle(pygame.sprite.Sprite):
 
         self.float_pos = self.float_x, self.float_y = pos[0], pos[1]
         self.radius = radius
+        self.max_lifetime = max_lifetime
+        self.increase = increase
 
         if range:
             angle = random.randint(-range / 2, range / 2)
@@ -30,16 +32,25 @@ class Particle(pygame.sprite.Sprite):
         time = self.clock.tick() / 1000
         lifetime = pygame.time.get_ticks() - self.spawn_time
 
+        if self.increase:
+            self.radius += self.increase * time
+            self.image = pygame.Surface((2 * int(self.radius), 2 * int(self.radius)), pygame.SRCALPHA)
+            self.rect = self.image.get_rect()
+            pygame.draw.circle(self.image, (150, 150, 150), (int(self.radius), int(self.radius)), int(self.radius))
+
         self.float_x += self.vx * time
         self.float_y -= self.vy * time
         self.rect.x = self.float_x - self.radius
         self.rect.y = self.float_y - self.radius
 
-        if not (self.rect.x in range(-self.radius, width + self.radius)
-                and self.rect.y in range(-self.radius, height + self.radius)):
+        if not (self.rect.x in range(-int(self.radius), width + int(self.radius))
+                and self.rect.y in range(-int(self.radius), height + int(self.radius))):
             self.kill()
-        if lifetime > 600:
+        if self.radius >= 50:
             self.kill()
+        if self.max_lifetime:
+            if lifetime > self.max_lifetime:
+                self.kill()
 
 
 class Player(pygame.sprite.Sprite):
@@ -66,6 +77,9 @@ class Player(pygame.sprite.Sprite):
         self.max_rot_speed = 180
         self.max_speed = 250
         self.friction = 8
+        self.particles_pers = 40
+
+        self.particle_spawner = 0
 
     def setDir(self, angle):
         self.image.fill(pygame.SRCALPHA)
@@ -102,14 +116,21 @@ class Player(pygame.sprite.Sprite):
 
     def update(self):
         time = self.clock.tick() / 1000
+
         if self.rot_speed:
             self.dir = (self.dir + self.rot_speed * time) % 360
             self.setDir(self.dir)
+
         if self.accelerate:
             self.addVector(self.accelerate * time, self.dir)
             if self.accelerate > 0:
-                Particle(pos=(self.particle_point[0] + self.rect.x, self.particle_point[1] + self.rect.y),
-                         radius=random.randint(5, 10), dir=(self.dir + 180) % 360, speed=100, range=90)
+                self.particle_spawner += time * self.particles_pers
+                for _ in range(int(self.particle_spawner)):
+                    Particle(pos=(self.particle_point[0] + self.rect.x, self.particle_point[1] + self.rect.y),
+                             radius=random.randint(5, 10), dir=(self.dir + 180) % 360, speed=100, range=90,
+                             increase=50)
+                self.particle_spawner -= int(self.particle_spawner)
+
         else:
             if self.speed < 3:
                 self.speed = self.vx = self.vy = 0
@@ -123,6 +144,7 @@ class Player(pygame.sprite.Sprite):
                 self.vy *= k
             else:
                 self.speed = self.vx = self.vy = 0
+
         if self.max_speed and self.speed > self.max_speed:
             k = self.max_speed / self.speed
             self.speed = self.max_speed
