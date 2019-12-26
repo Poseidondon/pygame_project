@@ -3,6 +3,10 @@ import random
 import math
 
 
+CAR_PRESETS = {'beginner': (250, -50, 180, 250, 50, '(255, 162, 0), (0, 0, 0):2:30:500:None')}
+CUR_CAR = CAR_PRESETS['beginner']
+
+
 class Particle(pygame.sprite.Sprite):
     def __init__(self, pos, radius, dir=None, speed=None):
         super().__init__(all_sprites)
@@ -13,7 +17,6 @@ class Particle(pygame.sprite.Sprite):
         self.float_pos = self.float_x, self.float_y = pos[0], pos[1]
         self.radius = radius
 
-        self.clock = pygame.time.Clock()
         self.spawn_time = pygame.time.get_ticks()
         self.alpha = 255
         self.lifetime = 0
@@ -60,12 +63,20 @@ class Particle(pygame.sprite.Sprite):
         else:
             return self.color_1
 
+    def apply_pars(self, pars):
+        # Parameters: [gradient:gradient_k:increase:max_lifetime:max_size]
+        pars = [eval(i) for i in pars.split(':')]
+        self.set_gradient(pars[0][0], pars[0][1])
+        self.set_gradient_k(pars[1])
+        self.set_increase(pars[2])
+        self.set_max_lifetime(pars[3])
+        self.set_max_size(pars[4])
+
     def update(self):
-        time = self.clock.tick() / 1000
         self.lifetime = pygame.time.get_ticks() - self.spawn_time
 
         if self.increase:
-            self.radius += self.increase * time
+            self.radius += self.increase * TIME
             self.image = pygame.Surface((2 * int(self.radius), 2 * int(self.radius)), pygame.SRCALPHA)
             self.rect = self.image.get_rect()
 
@@ -77,8 +88,8 @@ class Particle(pygame.sprite.Sprite):
         pygame.draw.circle(self.image, (c[0], c[1], c[2], int(self.alpha)),
                            (int(self.radius), int(self.radius)), int(self.radius))
 
-        self.float_x += self.vx * time
-        self.float_y -= self.vy * time
+        self.float_x += self.vx * TIME
+        self.float_y -= self.vy * TIME
         self.rect.x = self.float_x - self.radius
         self.rect.y = self.float_y - self.radius
 
@@ -94,10 +105,9 @@ class Particle(pygame.sprite.Sprite):
 
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, x, y, radius, collider=False):
+    def __init__(self, x, y, radius, collider=False, preset=CAR_PRESETS['beginner']):
         super().__init__(all_sprites)
         self.radius = radius
-        self.clock = pygame.time.Clock()
         self.collider = collider
         self.k = 1.4
         self.image = pygame.Surface((2 * radius * self.k, 2 * radius * self.k), pygame.SRCALPHA)
@@ -114,12 +124,18 @@ class Player(pygame.sprite.Sprite):
 
         self.particle_spawner = 0
 
-        self.forward_accelerate = 250
-        self.backward_accelerate = -50
-        self.max_rot_speed = 180
-        self.max_speed = 250
+        self.applyPreset(preset)
         self.friction = 8
-        self.particles_pers = 50
+
+    def applyPreset(self, preset):
+        # Preset: (f_acc, b_acc, rot_speed, speed, particles_per, particles_par)
+        self.forward_accelerate = preset[0]
+        self.backward_accelerate = preset[1]
+        self.max_rot_speed = preset[2]
+        self.max_speed = preset[3]
+        self.particles_pers = preset[4]
+        self.partciles_par = preset[5]
+
 
     def setDir(self, angle):
         self.image.fill(pygame.SRCALPHA)
@@ -156,26 +172,20 @@ class Player(pygame.sprite.Sprite):
         self.speed = math.hypot(self.vx, self.vy)
 
     def update(self):
-        time = self.clock.tick() / 1000
-
         if self.rot_speed:
-            self.dir = (self.dir + self.rot_speed * time) % 360
+            self.dir = (self.dir + self.rot_speed * TIME) % 360
             self.setDir(self.dir)
 
         if self.accelerate:
-            self.addVector(self.accelerate * time, self.dir)
+            self.addVector(self.accelerate * TIME, self.dir)
             if self.accelerate > 0:
-                self.particle_spawner += time * self.particles_pers
+                self.particle_spawner += TIME * self.particles_pers
                 for _ in range(int(self.particle_spawner)):
                     spreading = 90
                     angle = random.randint(-spreading / 2, spreading / 2)
                     p = Particle(pos=(self.particle_point[0] + self.rect.x, self.particle_point[1] + self.rect.y),
                                  radius=7, dir=(self.dir + 180 + angle) % 360, speed=100)
-                    p.set_gradient((255, 162, 0), (0, 0, 0))
-                    p.set_gradient_k(2)
-                    p.set_increase(30)
-                    p.set_max_lifetime(500)
-                    p.set_max_size(None)
+                    p.apply_pars(self.partciles_par)
                 self.particle_spawner -= int(self.particle_spawner)
 
         else:
@@ -183,7 +193,7 @@ class Player(pygame.sprite.Sprite):
                 self.speed = self.vx = self.vy = 0
 
         if self.friction:
-            friction = self.friction * time
+            friction = self.friction * TIME
             if friction < self.speed:
                 k = (self.speed - friction) / self.speed
                 self.speed -= friction
@@ -198,14 +208,14 @@ class Player(pygame.sprite.Sprite):
             self.vx *= k
             self.vy *= k
 
-        self.float_x += self.vx * time
-        self.float_y -= self.vy * time
+        self.float_x += self.vx * TIME
+        self.float_y -= self.vy * TIME
         self.rect.x = self.float_x
         self.rect.y = self.float_y
 
 
 def show_fps():
-    fps = FPS_FONT.render(f'FPS: {int(clock.get_fps())}', 1, (0, 0, 0))
+    fps = FPS_FONT.render(f'FPS: {int(CLOCK.get_fps())}', 1, (0, 0, 0))
     screen.blit(fps, (width - fps.get_width() - 5, 10))
 
 
@@ -214,10 +224,10 @@ size = width, height = (1024, 768)
 screen = pygame.display.set_mode(size)
 all_sprites = pygame.sprite.Group()
 
-clock = pygame.time.Clock()
+CLOCK = pygame.time.Clock()
 FPS_FONT = pygame.font.Font(None, 18)
 
-player = Player(400, 300, 16)
+player = Player(400, 300, 16, preset=CUR_CAR)
 
 running = True
 
@@ -247,10 +257,10 @@ while running:
             if event.key == 276 and player.rot_speed < 0:
                 player.rot_speed = 0
 
+    show_fps()
+    TIME = CLOCK.tick() / 1000
     all_sprites.draw(screen)
     all_sprites.update()
-    show_fps()
-    clock.tick()
     pygame.display.flip()
 
 pygame.quit()
