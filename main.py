@@ -127,10 +127,10 @@ def draw_sprite4(image, radius, angle, color_1, color_2, k=1.5):
 CARS = [draw_sprite1, draw_sprite2, draw_sprite3, draw_sprite4]
 # Preset: (f_acc, b_acc, rot_speed, speed, particles_per, particles_par, sprite_index, health)
 # Particles: [gradient:gradient_k:increase:max_lifetime:max_size:spreading:speed_k]
-CAR_PRESETS = {'beginner': (180, -50, 100, 180, 50, '(255, 162, 0), (0, 0, 0):2:30:500:None:90:1', 1, 1500),
-               'medium': (200, -50, 150, 250, 200, '(0, 245, 255), (255, 255, 255):1:30:100:None:100:5', 3, 2000),
-               'advanced': (250, -50, 180, 280, 50, '(13, 150, 0), (0, 0, 0):1:30:1500:None:180:0.5', 2, 2000),
-               'pro': (320, -50, 250, 350, 100, '(255, 255, 255), (0, 0, 0):1.5:30:900:None:30:5', 0, 1000)}
+CAR_PRESETS = {'beginner': (180, -50, 150, 360, 50, '(255, 162, 0), (0, 0, 0):2:30:500:None:90:1', 1, 3000),
+               'medium': (200, -50, 225, 500, 200, '(13, 150, 0), (0, 0, 0):1:30:1500:None:180:0.5', 2, 4000),
+               'advanced': (250, -50, 270, 560, 50, '(0, 245, 255), (255, 255, 255):1:30:100:None:100:5', 3, 4000),
+               'pro': (320, -50, 375, 700, 100, '(255, 255, 255), (0, 0, 0):1.5:30:900:None:30:5', 0, 2000)}
 
 CUR_CAR = CAR_PRESETS['pro']
 
@@ -146,22 +146,45 @@ def angleTo(point2, point1):
     return angle
 
 
+class Camera:
+    def __init__(self):
+        self.dx = 0
+        self.dy = 0
+
+    def apply(self, obj):
+        obj.rect.x += self.dx
+        obj.rect.y += self.dy
+        obj.float_x += self.dx
+        obj.float_y += self.dy
+
+    def apply_border(self, bor):
+        bor.rect.x += self.dx
+        bor.rect.y += self.dy
+        bor.pos1 = (bor.pos1[0] + self.dx, bor.pos1[1] + self.dy)
+        bor.pos2 = (bor.pos2[0] + self.dx, bor.pos2[1] + self.dy)
+
+    def update(self, target):
+        self.dx = -(target.rect.x + target.rect.w // 2 - width // 2)
+        self.dy = -(target.rect.y + target.rect.h // 2 - height // 2)
+
+
 class Border(pygame.sprite.Sprite):
-    def __init__(self, pos1, pos2, visible=False):
+    def __init__(self, pos1, pos2, color=None):
         super().__init__(all_sprites)
         self.add(borders)
-        thickness = 1
+        self.thickness = 1
         self.pos1 = x1, y1 = pos1
         self.pos2 = x2, y2 = pos2
         if x2 < x1:
             x1, x2 = x2, x1
         if y2 < y1:
             y1, y2 = y2, y1
-        self.image = pygame.Surface((x2 - x1 + thickness, y2 - y1 + thickness), pygame.SRCALPHA, 32)
-        self.rect = pygame.Rect(x1, y1, x2 - x1 + thickness, y2 - y1 + thickness)
-        if visible:
-            pygame.draw.line(self.image, (0, 255, 0),
-                             (pos1[0] - x1, pos1[1] - y1), (x2 - pos1[0], y2 - pos1[1]), thickness)
+        self.image = pygame.Surface((x2 - x1 + self.thickness, y2 - y1 + self.thickness), pygame.SRCALPHA, 32)
+        self.rect = pygame.Rect(x1, y1, x2 - x1 + self.thickness, y2 - y1 + self.thickness)
+        self.color = color
+        if color:
+            pygame.draw.line(self.image, color,
+                             (pos1[0] - x1, pos1[1] - y1), (x2 - pos1[0], y2 - pos1[1]), self.thickness)
 
 
 class Particle(pygame.sprite.Sprite):
@@ -281,7 +304,7 @@ class Player(pygame.sprite.Sprite):
         self.applyPreset(preset)
         self.spreading = self.partciles_par[5]
         self.speed_k = self.partciles_par[6]
-        self.friction = 20
+        self.friction = 50
 
         self.setDir(0)
 
@@ -395,12 +418,14 @@ class Player(pygame.sprite.Sprite):
                     new_vy = math.sin(math.radians(angle_betw)) * self.speed
                     final_vy = new_vy * 0.99
                     self.setVector(new_vy * 0.99, angleCol + 90)
-                    impact = new_vx + math.fabs(new_vy - final_vy)
-                    if impact >= 2:
-                        self.health -= impact
-                        if self.health <= 0:
-                            self.death()
-        self.drawHealth()
+                    if self.health:
+                        impact = new_vx + math.fabs(new_vy - final_vy)
+                        if impact >= 2:
+                            self.health -= impact
+                            if self.health <= 0:
+                                self.death()
+        if self.health:
+            self.drawHealth()
 
         if self.friction:
             friction = self.friction * TIME
@@ -437,15 +462,20 @@ borders = pygame.sprite.Group()
 
 CLOCK = pygame.time.Clock()
 
-player = Player(400, 300, 16, preset=CUR_CAR, collider=True)
-Border((100, 100), (250, 250), visible=True)
-Border((300, 300), (300, 600), visible=True)
-Border((500, 500), (200, 500), visible=True)
+player = Player(200, 0, 16, preset=CUR_CAR, collider=True)
+camera = Camera()
+Border((100, -500), (100, 500), color=(0, 0, 0))
+Border((300, -500), (300, 500), color=(0, 0, 0))
+Border((300, -500), (0, -1000), color=(0, 0, 0))
+Border((-1000, -1000), (1000, -1000), color=(0, 0, 0))
+Border((1000, -1000), (1000, 1000), color=(0, 0, 0))
+Border((1000, 1000), (-1000, 1000), color=(0, 0, 0))
+Border((-1000, 1000), (-1000, -1000), color=(0, 0, 0))
 
 running = True
 
 while running:
-    screen.fill((127, 127, 127))
+    screen.fill((255, 255, 255))
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -474,6 +504,13 @@ while running:
     TIME = CLOCK.tick() / 1000
     all_sprites.draw(screen)
     all_sprites.update()
+    camera.update(player)
+    for sprite in all_sprites:
+        tip = type(sprite)
+        if tip == Border:
+            camera.apply_border(sprite)
+        else:
+            camera.apply(sprite)
     pygame.display.flip()
 
 pygame.quit()
