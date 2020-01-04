@@ -5,7 +5,9 @@ import math
 
 def load_level(name):
     f = open('levels/' + name, 'r', encoding='utf-8')
-    borders, checkpoints, laps = [eval(i) for i in f.readlines()]
+    borders, checkpoints, laps, k = [eval(i) for i in f.readlines()]
+    borders = [((i[0][0] * k, i[0][1] * k), (i[1][0] * k, i[1][1] * k)) for i in borders]
+    checkpoints = [((i[0][0] * k, i[0][1] * k), (i[1][0] * k, i[1][1] * k)) for i in checkpoints]
     f.close()
 
     for b in borders:
@@ -13,9 +15,9 @@ def load_level(name):
 
     checks = []
     c = checkpoints[0]
-    checks.append(Checkpoint(c[0], c[1], True, True))
+    checks.append(Checkpoint(c[0], c[1], finish=True))
     for c in checkpoints[1:]:
-        checks.append(Checkpoint(c[0], c[1], True))
+        checks.append(Checkpoint(c[0], c[1]))
 
     return Player(0, 0, ((200, 200, 0), (0, 200, 200)), CUR_CAR, checks, laps)
 
@@ -144,12 +146,12 @@ def draw_sprite4(image, radius, angle, color_1, color_2, k=1.5):
 CARS = [draw_sprite1, draw_sprite2, draw_sprite3, draw_sprite4]
 # Preset: (f_acc, b_acc, rot_speed, speed, particles_per, particles_par, sprite_index, health)
 # Particles: [gradient:gradient_k:increase:max_lifetime:max_size:spreading:speed_k]
-CAR_PRESETS = {'beginner': (180, -100, 150, 360, 50, '(255, 162, 0), (0, 0, 0):2:30:500:None:90:1', 1, 3000),
-               'medium': (200, -100, 225, 500, 70, '(13, 150, 0), (0, 0, 0):1:30:1000:None:180:0.5', 2, 4000),
-               'advanced': (250, -100, 270, 560, 200, '(0, 245, 255), (255, 255, 255):1:30:100:None:100:5', 3, 4000),
-               'pro': (320, -100, 375, 700, 100, '(255, 255, 255), (0, 0, 0):1.5:30:900:None:30:5', 0, 2000)}
+CAR_PRESETS = {'beginner': (270, -100, 170, 540, 80, '(255, 162, 0), (0, 0, 0):2:30:500:None:90:1', 1, 2000),
+               'medium': (320, -100, 225, 750, 70, '(13, 150, 0), (0, 0, 0):1:30:1000:None:180:0.5', 2, 3000),
+               'advanced': (380, -100, 330, 850, 200, '(0, 245, 255), (255, 255, 255):1:30:100:None:100:5', 3, 2500),
+               'pro': (500, -100, 380, 1100, 100, '(255, 255, 255), (0, 0, 0):1.5:30:900:None:30:5', 0, 2000)}
 
-CUR_CAR = CAR_PRESETS['pro']
+CUR_CAR = CAR_PRESETS['medium']
 
 
 def angleTo(point2, point1):
@@ -540,7 +542,7 @@ all_sprites = pygame.sprite.Group()
 borders = pygame.sprite.Group()
 
 camera = Camera()
-player = load_level('lvl_2.txt')
+player = load_level('lvl_1.txt')
 
 
 running = True

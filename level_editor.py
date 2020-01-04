@@ -9,24 +9,24 @@ def undo(borders):
     return borders
 
 
-def save(player, borders, checkpoints):
+def save(player, borders):
     b_data = []
     c_data = []
-    k = float(input('Enter the k value: '))
+    k = input('Enter the k value: ')
     laps = input('Enter laps amount: ')
     for el in borders:
         if type(el) == tuple:
             if len(el) == 2:
-                b_data.append((((el[0][0] - player[0]) * k, (el[0][1] - player[1]) * k),
-                               ((el[1][0] - player[0]) * k, (el[1][1] - player[1]) * k)))
+                b_data.append(((el[0][0] - player[0], el[0][1] - player[1]),
+                               (el[1][0] - player[0], el[1][1] - player[1])))
             else:
-                c_data.append((((el[0][0][0] - player[0]) * k, (el[0][0][1] - player[1]) * k),
-                               ((el[0][1][0] - player[0]) * k, (el[0][1][1] - player[1]) * k)))
+                c_data.append(((el[0][0][0] - player[0], el[0][0][1] - player[1]),
+                               (el[0][1][0] - player[0], el[0][1][1] - player[1])))
         elif type(el) == list:
             for border in el:
-                b_data.append((((border[0][0] - player[0]) * k, (border[0][1] - player[1]) * k),
-                               ((border[1][0] - player[0]) * k, (border[1][1] - player[1]) * k)))
-    data = '\n'.join([str(b_data), str(c_data), laps])
+                b_data.append(((border[0][0] - player[0], border[0][1] - player[1]),
+                               (border[1][0] - player[0], border[1][1] - player[1])))
+    data = '\n'.join([str(b_data), str(c_data), laps, k])
     levels = os.listdir('levels')
     name = 'lvl_1.txt'
     i = 1
@@ -101,7 +101,7 @@ while running:
             if event.key == 122 and event.mod == 64:
                 borders = undo(borders)
             if event.key == 115 and event.mod == 64:
-                save(player, borders, checkpoints)
+                save(player, borders)
 
         if event.type == pygame.KEYUP:
             if event.key == 308:
