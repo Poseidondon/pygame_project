@@ -3,6 +3,23 @@ import random
 import math
 
 
+def load_level(name):
+    f = open('levels/' + name, 'r', encoding='utf-8')
+    borders, checkpoints, laps = [eval(i) for i in f.readlines()]
+    f.close()
+
+    for b in borders:
+        Border(b[0], b[1], color=(0, 0, 0))
+
+    checks = []
+    c = checkpoints[0]
+    checks.append(Checkpoint(c[0], c[1], True, True))
+    for c in checkpoints[1:]:
+        checks.append(Checkpoint(c[0], c[1], True))
+
+    return Player(0, 0, ((200, 200, 0), (0, 200, 200)), CUR_CAR, checks, laps)
+
+
 def draw_sprite1(image, radius, angle, color_1, color_2, k=1.5):
     points_1 = ((radius * k + math.cos(math.radians(angle + 100)) * radius * k * 0.35,
                  radius * k + math.sin(math.radians(angle + 100)) * radius * k * 0.35),
@@ -127,10 +144,10 @@ def draw_sprite4(image, radius, angle, color_1, color_2, k=1.5):
 CARS = [draw_sprite1, draw_sprite2, draw_sprite3, draw_sprite4]
 # Preset: (f_acc, b_acc, rot_speed, speed, particles_per, particles_par, sprite_index, health)
 # Particles: [gradient:gradient_k:increase:max_lifetime:max_size:spreading:speed_k]
-CAR_PRESETS = {'beginner': (180, -50, 150, 360, 50, '(255, 162, 0), (0, 0, 0):2:30:500:None:90:1', 1, 3000),
-               'medium': (200, -50, 225, 500, 200, '(13, 150, 0), (0, 0, 0):1:30:1500:None:180:0.5', 2, 4000),
-               'advanced': (250, -50, 270, 560, 50, '(0, 245, 255), (255, 255, 255):1:30:100:None:100:5', 3, 4000),
-               'pro': (320, -50, 375, 700, 100, '(255, 255, 255), (0, 0, 0):1.5:30:900:None:30:5', 0, 2000)}
+CAR_PRESETS = {'beginner': (180, -100, 150, 360, 50, '(255, 162, 0), (0, 0, 0):2:30:500:None:90:1', 1, 3000),
+               'medium': (200, -100, 225, 500, 70, '(13, 150, 0), (0, 0, 0):1:30:1000:None:180:0.5', 2, 4000),
+               'advanced': (250, -100, 270, 560, 200, '(0, 245, 255), (255, 255, 255):1:30:100:None:100:5', 3, 4000),
+               'pro': (320, -100, 375, 700, 100, '(255, 255, 255), (0, 0, 0):1.5:30:900:None:30:5', 0, 2000)}
 
 CUR_CAR = CAR_PRESETS['pro']
 
@@ -164,8 +181,8 @@ class Camera:
         bor.pos2 = (bor.pos2[0] + self.dx, bor.pos2[1] + self.dy)
 
     def update(self, target):
-        self.dx = -(target.rect.x + target.rect.w // 2 - width // 2)
-        self.dy = -(target.rect.y + target.rect.h // 2 - height // 2)
+        self.dx = -(target.rect.x + target.rect.w // 2 - width // 2) - int(target.vx / target.max_speed * 0.4 * width)
+        self.dy = -(target.rect.y + target.rect.h // 2 - height // 2) + int(target.vy / target.max_speed * 0.4 * height)
 
 
 class Border(pygame.sprite.Sprite):
@@ -185,6 +202,26 @@ class Border(pygame.sprite.Sprite):
         if color:
             pygame.draw.line(self.image, color,
                              (pos1[0] - x1, pos1[1] - y1), (x2 - pos1[0], y2 - pos1[1]), self.thickness)
+
+
+class Checkpoint(pygame.sprite.Sprite):
+    def __init__(self, pos1, pos2, visible=False, finish=False):
+        super().__init__(all_sprites)
+        self.finish = finish
+        self.pos1 = x1, y1 = pos1
+        self.pos2 = x2, y2 = pos2
+        if x2 < x1:
+            x1, x2 = x2, x1
+        if y2 < y1:
+            y1, y2 = y2, y1
+        self.image = pygame.Surface((x2 - x1 + 1, y2 - y1 + 1), pygame.SRCALPHA, 32)
+        self.rect = pygame.Rect(x1, y1, x2 - x1 + 1, y2 - y1 + 1)
+        if finish:
+            pygame.draw.line(self.image, (255, 0, 0),
+                             (pos1[0] - x1, pos1[1] - y1), (x2 - pos1[0], y2 - pos1[1]), 1)
+        elif visible:
+            pygame.draw.line(self.image, (0, 200, 0),
+                             (pos1[0] - x1, pos1[1] - y1), (x2 - pos1[0], y2 - pos1[1]), 1)
 
 
 class Particle(pygame.sprite.Sprite):
@@ -283,23 +320,25 @@ class Particle(pygame.sprite.Sprite):
 
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, x, y, radius, collider=False, preset=CAR_PRESETS['beginner']):
+    def __init__(self, x, y, colors, preset, checkpoints, laps, collider=False):
         super().__init__(all_sprites)
-        self.radius = radius
+        self.radius = 16
         self.collider = collider
         self.k = 1.4
-        self.image = pygame.Surface((2 * radius * self.k, 2 * radius * self.k), pygame.SRCALPHA)
+        self.image = pygame.Surface((2 * self.radius * self.k, 2 * self.radius * self.k), pygame.SRCALPHA)
         self.rect = self.image.get_rect()
         self.particle_point = (0, 0)
 
-        self.float_pos = self.float_x, self.float_y = x, y
+        self.float_pos = self.float_x, self.float_y = x - self.rect.w // 2, y - self.rect.h // 2
         self.vx = self.vy = 0
         self.speed = 0
         self.accelerate = 0
         self.rot_speed = 0
         self.dir = 0
+        self.color1, self.color2 = colors
 
         self.particle_spawner = 0
+        self.spawntime = pygame.time.get_ticks()
 
         self.applyPreset(preset)
         self.spreading = self.partciles_par[5]
@@ -307,18 +346,42 @@ class Player(pygame.sprite.Sprite):
         self.friction = 50
 
         self.setDir(0)
+        self.laps = laps + 1
+        self.max_laps = laps
+        self.checkpoints = checkpoints
+        self.next_checkpoint = checkpoints[0]
+        self.renderFonts()
 
-    def drawHealth(self):
-        health_mes = pygame.font.Font(None, 32).render('Health:', 1, (0, 0, 0))
-        screen.blit(health_mes, (5, height - health_mes.get_height() - 30))
+    def renderFonts(self):
+        self.health_mes = pygame.font.Font(None, 32).render('Health:', 1, (0, 0, 0))
+
+        cur_lap = max(0, self.max_laps - self.laps)
+        mes = 'Laps: ' + '/'.join([str(cur_lap), str(self.max_laps)])
+        self.laps_mes = pygame.font.Font(None, 36).render(mes, 1, (0, 0, 0))
+
+        time = pygame.time.get_ticks() - self.spawntime
+        mins = time // 60000
+        secs = (time - mins * 60000) // 1000
+        mes = 'Time: ' + str(mins).rjust(2, '0') + ':' + str(secs).rjust(2, '0')
+        self.time_mes = pygame.font.Font(None, 36).render(mes, 1, (0, 0, 0))
+
+    def drawUI(self):
+        screen.blit(self.health_mes, (5, height - self.health_mes.get_height() - 30))
         if self.health > 0:
             k = self.health / self.max_health
             color = (255 * (1 - k), 255 * k, 0)
             pygame.draw.rect(screen, color, (5, height - 25, int(200 * k), 20))
         pygame.draw.rect(screen, (0, 0, 0), (5, height - 25, 200, 20), 2)
 
+        screen.blit(self.laps_mes, (width - self.laps_mes.get_width() - 10, 10))
+
+        screen.blit(self.time_mes, (width - self.time_mes.get_width() - 10, 40))
+
     def death(self):
         print('death')
+
+    def finish(self, time):
+        print(time)
 
     def applyPreset(self, preset):
         self.forward_accelerate = preset[0]
@@ -334,7 +397,7 @@ class Player(pygame.sprite.Sprite):
     def setDir(self, angle):
         self.image.fill(pygame.SRCALPHA)
         angle = (angle - 90) % 360
-        self.draw(self.image, self.radius, angle, (128, 0, 0), (128, 128, 0), k=self.k)
+        self.draw(self.image, self.radius, angle, self.color1, self.color2, k=self.k)
 
         if self.collider:
             pygame.draw.circle(self.image, (0, 255, 0),
@@ -402,8 +465,8 @@ class Player(pygame.sprite.Sprite):
             if self.speed < 3:
                 self.speed = self.vx = self.vy = 0
 
+        point1 = self.rect.x + self.radius * self.k, self.rect.y + self.radius * self.k
         for border in borders:
-            point1 = self.rect.x + self.radius * self.k, self.rect.y + self.radius * self.k
             dist, pos = self.borderDist(point1, border)
             if dist <= self.radius:
                 angleCol = angleTo((point1[0], point1[1]), pos)
@@ -424,8 +487,16 @@ class Player(pygame.sprite.Sprite):
                             self.health -= impact
                             if self.health <= 0:
                                 self.death()
-        if self.health:
-            self.drawHealth()
+
+        if self.borderDist(point1, self.next_checkpoint)[0] <= self.radius:
+            if self.next_checkpoint == self.checkpoints[-1]:
+                self.next_checkpoint = self.checkpoints[0]
+            else:
+                if self.next_checkpoint == self.checkpoints[0]:
+                    self.laps -= 1
+                    if self.laps == 0:
+                        self.finish(pygame.time.get_ticks() - self.spawntime)
+                self.next_checkpoint = self.checkpoints[self.checkpoints.index(self.next_checkpoint) + 1]
 
         if self.friction:
             friction = self.friction * TIME
@@ -448,37 +519,42 @@ class Player(pygame.sprite.Sprite):
         self.rect.x = self.float_x
         self.rect.y = self.float_y
 
+        self.drawUI()
+
 
 def show_fps():
-    fps = pygame.font.Font(None, 18).render(f'FPS: {int(CLOCK.get_fps())}', 1, (0, 0, 0))
-    screen.blit(fps, (width - fps.get_width() - 5, 10))
+    screen.blit(fps, (width - fps.get_width() - 5, height - fps.get_height() - 10))
 
 
 pygame.init()
 size = width, height = (1024, 768)
 screen = pygame.display.set_mode(size)
-all_sprites = pygame.sprite.Group()
-borders = pygame.sprite.Group()
 
 CLOCK = pygame.time.Clock()
 
-player = Player(200, 0, 16, preset=CUR_CAR, collider=True)
+RENDERFONTS = 30
+pygame.time.set_timer(RENDERFONTS, 200)
+fps = pygame.font.Font(None, 18).render(f'FPS: {int(CLOCK.get_fps())}', 1, (0, 0, 0))
+
+all_sprites = pygame.sprite.Group()
+borders = pygame.sprite.Group()
+
 camera = Camera()
-Border((100, -500), (100, 500), color=(0, 0, 0))
-Border((300, -500), (300, 500), color=(0, 0, 0))
-Border((300, -500), (0, -1000), color=(0, 0, 0))
-Border((-1000, -1000), (1000, -1000), color=(0, 0, 0))
-Border((1000, -1000), (1000, 1000), color=(0, 0, 0))
-Border((1000, 1000), (-1000, 1000), color=(0, 0, 0))
-Border((-1000, 1000), (-1000, -1000), color=(0, 0, 0))
+player = load_level('lvl_2.txt')
+
 
 running = True
 
 while running:
-    screen.fill((255, 255, 255))
+    screen.fill((200, 200, 200))
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+
+        if event.type == RENDERFONTS:
+            fps = pygame.font.Font(None, 18).render(f'FPS: {int(CLOCK.get_fps())}', 1, (0, 0, 0))
+            if player:
+                player.renderFonts()
 
         if event.type == pygame.KEYDOWN:
             if event.key == 273:
@@ -507,7 +583,7 @@ while running:
     camera.update(player)
     for sprite in all_sprites:
         tip = type(sprite)
-        if tip == Border:
+        if tip == Border or tip == Checkpoint:
             camera.apply_border(sprite)
         else:
             camera.apply(sprite)
