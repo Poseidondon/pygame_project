@@ -1,6 +1,22 @@
 import pygame
 import random
 import math
+import sys
+import os
+
+pygame.init()
+size = width, height = (1024, 768)
+screen = pygame.display.set_mode(size)
+
+MEDIUM_PRICE = 100
+ADVANCED_PRICE = 200
+PRO_PRICE = 500
+
+
+def terminate():
+    save_data()
+    pygame.quit()
+    sys.exit()
 
 
 def load_level(name):
@@ -19,24 +35,46 @@ def load_level(name):
     for c in checkpoints[1:]:
         checks.append(Checkpoint(c[0], c[1]))
 
-    return Player(0, 0, ((200, 200, 0), (0, 200, 200)), CUR_CAR, checks, laps)
+    return Player(0, 0, (COLOR_1, COLOR_2), CUR_CAR, checks, laps)
 
 
-def draw_sprite1(image, radius, angle, color_1, color_2, k=1.5):
-    points_1 = ((radius * k + math.cos(math.radians(angle + 100)) * radius * k * 0.35,
-                 radius * k + math.sin(math.radians(angle + 100)) * radius * k * 0.35),
-                (radius * k + math.cos(math.radians(angle - 100)) * radius * k * 0.35,
-                 radius * k + math.sin(math.radians(angle - 100)) * radius * k * 0.35),
-                (radius * k + math.cos(math.radians(angle + 180)) * radius * k,
-                 radius * k + math.sin(math.radians(angle + 180)) * radius * k))
+def load_data():
+    global CUR_CAR, COLOR_1, COLOR_2, BALANCE, BALANCE_MES, UNLOCKED_CARS
+    f = open('data.txt', 'r', encoding='utf-8')
+    data = [eval(i) for i in f.readlines()]
+    f.close()
+    CUR_CAR = CAR_PRESETS[data[0]]
+    COLOR_1 = data[1]
+    COLOR_2 = data[2]
+    BALANCE = data[3]
+    BALANCE_MES = pygame.font.Font(None, 120).render('$' + str(BALANCE), 1, (20, 180, 0))
+    UNLOCKED_CARS = data[4]
 
-    points_2 = ((radius * k + math.cos(math.radians(angle)) * radius * k,
-                 radius * k + math.sin(math.radians(angle)) * radius * k),
-                (radius * k + math.cos(math.radians(angle + 140)) * radius * k,
-                 radius * k + math.sin(math.radians(angle + 140)) * radius * k),
-                (radius * k, radius * k),
-                (radius * k + math.cos(math.radians(angle - 140)) * radius * k,
-                 radius * k + math.sin(math.radians(angle - 140)) * radius * k))
+
+def save_data():
+    f = open('data.txt', 'w', encoding='utf-8')
+    car = "'" + list(CAR_PRESETS.keys())[list(CAR_PRESETS.values()).index(CUR_CAR)] + "'"
+    data = '\n'.join([car, str(COLOR_1), str(COLOR_2), str(BALANCE), str(UNLOCKED_CARS)])
+    f.write(data)
+    f.close()
+
+
+def draw_sprite1(image, radius, angle, color_1, color_2, k=1.5, shift_x=0, shift_y=0):
+    points_1 = ((shift_x + radius * k + math.cos(math.radians(angle + 100)) * radius * k * 0.35,
+                 shift_y + radius * k + math.sin(math.radians(angle + 100)) * radius * k * 0.35),
+                (shift_x + radius * k, shift_y + radius * k),
+                (shift_x + radius * k + math.cos(math.radians(angle - 100)) * radius * k * 0.35,
+                 shift_y + radius * k + math.sin(math.radians(angle - 100)) * radius * k * 0.35),
+                (shift_x + radius * k + math.cos(math.radians(angle + 180)) * radius * k,
+                 shift_y + radius * k + math.sin(math.radians(angle + 180)) * radius * k))
+
+    points_2 = ((shift_x + radius * k + math.cos(math.radians(angle)) * radius * k,
+                 shift_y + radius * k + math.sin(math.radians(angle)) * radius * k),
+                (shift_x + radius * k + math.cos(math.radians(angle + 140)) * radius * k,
+                 shift_y + radius * k + math.sin(math.radians(angle + 140)) * radius * k),
+                (shift_x + radius * k, shift_y + radius * k),
+                (shift_x + radius * k + math.cos(math.radians(angle - 140)) * radius * k,
+                 shift_y + radius * k + math.sin(math.radians(angle - 140)) * radius * k))
 
     pygame.draw.polygon(image, color_2, points_1)
     pygame.draw.polygon(image, (0, 0, 0), points_1, 2)
@@ -45,20 +83,20 @@ def draw_sprite1(image, radius, angle, color_1, color_2, k=1.5):
     pygame.draw.polygon(image, (0, 0, 0), points_2, 2)
 
 
-def draw_sprite2(image, radius, angle, color_1, color_2, k=1.5):
-    points_1 = ((radius * k + math.cos(math.radians(angle)) * radius * k,
-                 radius * k + math.sin(math.radians(angle)) * radius * k),
-                (radius * k + math.cos(math.radians(angle + 120)) * radius * k * 0.6,
-                 radius * k + math.sin(math.radians(angle + 120)) * radius * k * 0.6),
-                (radius * k + math.cos(math.radians(angle + 180)) * radius * k * 0.8,
-                 radius * k + math.sin(math.radians(angle + 180)) * radius * k * 0.8),
-                (radius * k + math.cos(math.radians(angle - 120)) * radius * k * 0.6,
-                 radius * k + math.sin(math.radians(angle - 120)) * radius * k * 0.6))
+def draw_sprite2(image, radius, angle, color_1, color_2, k=1.5, shift_x=0, shift_y=0):
+    points_1 = ((shift_x + radius * k + math.cos(math.radians(angle)) * radius * k,
+                 shift_y + radius * k + math.sin(math.radians(angle)) * radius * k),
+                (shift_x + radius * k + math.cos(math.radians(angle + 120)) * radius * k * 0.6,
+                 shift_y + radius * k + math.sin(math.radians(angle + 120)) * radius * k * 0.6),
+                (shift_x + radius * k + math.cos(math.radians(angle + 180)) * radius * k * 0.8,
+                 shift_y + radius * k + math.sin(math.radians(angle + 180)) * radius * k * 0.8),
+                (shift_x + radius * k + math.cos(math.radians(angle - 120)) * radius * k * 0.6,
+                 shift_y + radius * k + math.sin(math.radians(angle - 120)) * radius * k * 0.6))
 
-    circle_1 = (int(radius * k + math.cos(math.radians(angle + 180)) * radius * k * 0.25),
-                int(radius * k + math.sin(math.radians(angle + 180)) * radius * k * 0.25))
-    circle_2 = (int(radius * k + math.cos(math.radians(angle)) * radius * k * 0.25),
-                int(radius * k + math.sin(math.radians(angle)) * radius * k * 0.25))
+    circle_1 = (int(shift_x + radius * k + math.cos(math.radians(angle + 180)) * radius * k * 0.25),
+                int(shift_y + radius * k + math.sin(math.radians(angle + 180)) * radius * k * 0.25))
+    circle_2 = (int(shift_x + radius * k + math.cos(math.radians(angle)) * radius * k * 0.25),
+                int(shift_y + radius * k + math.sin(math.radians(angle)) * radius * k * 0.25))
 
     pygame.draw.polygon(image, color_1, points_1)
     pygame.draw.polygon(image, (0, 0, 0), points_1, 2)
@@ -70,41 +108,41 @@ def draw_sprite2(image, radius, angle, color_1, color_2, k=1.5):
     pygame.draw.circle(image, (0, 0, 0), circle_2, int(radius * k * 0.2) + 1, 1)
 
 
-def draw_sprite3(image, radius, angle, color_1, color_2, k=1.5):
-    points_1 = ((radius * k + math.cos(math.radians(angle)) * radius * k,
-                 radius * k + math.sin(math.radians(angle)) * radius * k),
-                (radius * k + math.cos(math.radians(angle - 60)) * radius * k * 0.7,
-                 radius * k + math.sin(math.radians(angle - 60)) * radius * k * 0.7),
-                (radius * k + math.cos(math.radians(angle)) * radius * k * 0.5,
-                 radius * k + math.sin(math.radians(angle)) * radius * k * 0.5),
-                (radius * k + math.cos(math.radians(angle + 60)) * radius * k * 0.7,
-                 radius * k + math.sin(math.radians(angle + 60)) * radius * k * 0.7))
+def draw_sprite3(image, radius, angle, color_1, color_2, k=1.5, shift_x=0, shift_y=0):
+    points_1 = ((shift_x + radius * k + math.cos(math.radians(angle)) * radius * k,
+                 shift_y + radius * k + math.sin(math.radians(angle)) * radius * k),
+                (shift_x + radius * k + math.cos(math.radians(angle - 60)) * radius * k * 0.7,
+                 shift_y + radius * k + math.sin(math.radians(angle - 60)) * radius * k * 0.7),
+                (shift_x + radius * k + math.cos(math.radians(angle)) * radius * k * 0.5,
+                 shift_y + radius * k + math.sin(math.radians(angle)) * radius * k * 0.5),
+                (shift_x + radius * k + math.cos(math.radians(angle + 60)) * radius * k * 0.7,
+                 shift_y + radius * k + math.sin(math.radians(angle + 60)) * radius * k * 0.7))
 
-    points_2 = ((radius * k + math.cos(math.radians(angle)) * radius * k * 0.7,
-                 radius * k + math.sin(math.radians(angle)) * radius * k * 0.7),
-                (radius * k + math.cos(math.radians(angle - 90)) * radius * k * 0.7,
-                 radius * k + math.sin(math.radians(angle - 90)) * radius * k * 0.7),
-                (radius * k + math.cos(math.radians(angle)) * radius * k * 0.25,
-                 radius * k + math.sin(math.radians(angle)) * radius * k * 0.25),
-                (radius * k + math.cos(math.radians(angle + 90)) * radius * k * 0.7,
-                 radius * k + math.sin(math.radians(angle + 90)) * radius * k * 0.7))
+    points_2 = ((shift_x + radius * k + math.cos(math.radians(angle)) * radius * k * 0.7,
+                 shift_y + radius * k + math.sin(math.radians(angle)) * radius * k * 0.7),
+                (shift_x + radius * k + math.cos(math.radians(angle - 90)) * radius * k * 0.7,
+                 shift_y + radius * k + math.sin(math.radians(angle - 90)) * radius * k * 0.7),
+                (shift_x + radius * k + math.cos(math.radians(angle)) * radius * k * 0.25,
+                 shift_y + radius * k + math.sin(math.radians(angle)) * radius * k * 0.25),
+                (shift_x + radius * k + math.cos(math.radians(angle + 90)) * radius * k * 0.7,
+                 shift_y + radius * k + math.sin(math.radians(angle + 90)) * radius * k * 0.7))
 
-    points_3 = ((radius * k + math.cos(math.radians(angle)) * radius * k * 0.4,
-                 radius * k + math.sin(math.radians(angle)) * radius * k * 0.4),
-                (radius * k + math.cos(math.radians(angle - 110)) * radius * k * 0.7,
-                 radius * k + math.sin(math.radians(angle - 110)) * radius * k * 0.7),
-                (radius * k + math.cos(math.radians(angle + 180)) * radius * k * 0.1,
-                 radius * k + math.sin(math.radians(angle + 180)) * radius * k * 0.1),
-                (radius * k + math.cos(math.radians(angle + 110)) * radius * k * 0.7,
-                 radius * k + math.sin(math.radians(angle + 110)) * radius * k * 0.7))
+    points_3 = ((shift_x + radius * k + math.cos(math.radians(angle)) * radius * k * 0.4,
+                 shift_y + radius * k + math.sin(math.radians(angle)) * radius * k * 0.4),
+                (shift_x + radius * k + math.cos(math.radians(angle - 110)) * radius * k * 0.7,
+                 shift_y + radius * k + math.sin(math.radians(angle - 110)) * radius * k * 0.7),
+                (shift_x + radius * k + math.cos(math.radians(angle + 180)) * radius * k * 0.1,
+                 shift_y + radius * k + math.sin(math.radians(angle + 180)) * radius * k * 0.1),
+                (shift_x + radius * k + math.cos(math.radians(angle + 110)) * radius * k * 0.7,
+                 shift_y + radius * k + math.sin(math.radians(angle + 110)) * radius * k * 0.7))
 
-    points_4 = ((radius * k, radius * k),
-                (radius * k + math.cos(math.radians(angle - 130)) * radius * k * 0.8,
-                 radius * k + math.sin(math.radians(angle - 130)) * radius * k * 0.8),
-                (radius * k + math.cos(math.radians(angle + 180)) * radius * k * 0.4,
-                 radius * k + math.sin(math.radians(angle + 180)) * radius * k * 0.4),
-                (radius * k + math.cos(math.radians(angle + 130)) * radius * k * 0.8,
-                 radius * k + math.sin(math.radians(angle + 130)) * radius * k * 0.8))
+    points_4 = ((shift_x + radius * k, shift_y + radius * k),
+                (shift_x + radius * k + math.cos(math.radians(angle - 130)) * radius * k * 0.8,
+                 shift_y + radius * k + math.sin(math.radians(angle - 130)) * radius * k * 0.8),
+                (shift_x + radius * k + math.cos(math.radians(angle + 180)) * radius * k * 0.4,
+                 shift_y + radius * k + math.sin(math.radians(angle + 180)) * radius * k * 0.4),
+                (shift_x + radius * k + math.cos(math.radians(angle + 130)) * radius * k * 0.8,
+                 shift_y + radius * k + math.sin(math.radians(angle + 130)) * radius * k * 0.8))
 
     pygame.draw.polygon(image, color_2, points_4)
     pygame.draw.polygon(image, (0, 0, 0), points_4, 2)
@@ -119,28 +157,36 @@ def draw_sprite3(image, radius, angle, color_1, color_2, k=1.5):
     pygame.draw.polygon(image, (0, 0, 0), points_1, 2)
 
 
-def draw_sprite4(image, radius, angle, color_1, color_2, k=1.5):
-    points_1 = ((radius * k + math.cos(math.radians(angle + 30)) * radius * k,
-                 radius * k + math.sin(math.radians(angle + 30)) * radius * k),
-                (radius * k + math.cos(math.radians(angle - 165)) * radius * k,
-                 radius * k + math.sin(math.radians(angle - 165)) * radius * k),
-                (radius * k + math.cos(math.radians(angle - 30)) * radius * k,
-                 radius * k + math.sin(math.radians(angle - 30)) * radius * k),
-                (radius * k + math.cos(math.radians(angle + 165)) * radius * k,
-                 radius * k + math.sin(math.radians(angle + 165)) * radius * k))
+def draw_sprite4(image, radius, angle, color_1, color_2, k=1.5, shift_x=0, shift_y=0):
+    points_1 = ((shift_x + radius * k + math.cos(math.radians(angle + 30)) * radius * k,
+                 shift_y + radius * k + math.sin(math.radians(angle + 30)) * radius * k),
+                (shift_x + radius * k + math.cos(math.radians(angle - 165)) * radius * k,
+                 shift_y + radius * k + math.sin(math.radians(angle - 165)) * radius * k),
+                (shift_x + radius * k + math.cos(math.radians(angle - 30)) * radius * k,
+                 shift_y + radius * k + math.sin(math.radians(angle - 30)) * radius * k),
+                (shift_x + radius * k + math.cos(math.radians(angle + 165)) * radius * k,
+                 shift_y + radius * k + math.sin(math.radians(angle + 165)) * radius * k))
 
-    points_2 = ((radius * k + math.cos(math.radians(angle)) * radius * k,
-                 radius * k + math.sin(math.radians(angle)) * radius * k),
-                (radius * k + math.cos(math.radians(angle - 140)) * radius * k * 0.5,
-                 radius * k + math.sin(math.radians(angle - 140)) * radius * k * 0.5),
-                (radius * k + math.cos(math.radians(angle + 140)) * radius * k * 0.5,
-                 radius * k + math.sin(math.radians(angle + 140)) * radius * k * 0.5))
+    points_2 = ((shift_x + radius * k + math.cos(math.radians(angle)) * radius * k,
+                 shift_y + radius * k + math.sin(math.radians(angle)) * radius * k),
+                (shift_x + radius * k + math.cos(math.radians(angle - 160)) * radius * k * 0.6,
+                 shift_y + radius * k + math.sin(math.radians(angle - 160)) * radius * k * 0.6),
+                (shift_x + radius * k + math.cos(math.radians(angle + 160)) * radius * k * 0.6,
+                 shift_y + radius * k + math.sin(math.radians(angle + 160)) * radius * k * 0.6))
 
     pygame.draw.polygon(image, color_1, points_2)
     pygame.draw.polygon(image, (0, 0, 0), points_2, 2)
 
     pygame.draw.polygon(image, color_2, points_1)
     pygame.draw.polygon(image, (0, 0, 0), points_1, 2)
+
+
+def init_fonts():
+    global FPS, SELECT_FONT, COLOR_1_FONT, COLOR_2_FONT
+    FPS = pygame.font.Font(None, 18).render(f'FPS: {int(CLOCK.get_fps())}', 1, (0, 0, 0))
+    SELECT_FONT = pygame.font.Font(None, 40).render('*SELECTED*', 1, (20, 180, 0))
+    COLOR_1_FONT = pygame.font.Font(None, 40).render('COLOR 1:', 1, (20, 180, 0))
+    COLOR_2_FONT = pygame.font.Font(None, 40).render('COLOR 2:', 1, (20, 180, 0))
 
 
 CARS = [draw_sprite1, draw_sprite2, draw_sprite3, draw_sprite4]
@@ -151,7 +197,12 @@ CAR_PRESETS = {'beginner': (270, -100, 170, 540, 80, '(255, 162, 0), (0, 0, 0):2
                'advanced': (380, -100, 330, 850, 200, '(0, 245, 255), (255, 255, 255):1:30:100:None:100:5', 3, 2500),
                'pro': (500, -100, 380, 1100, 100, '(255, 255, 255), (0, 0, 0):1.5:30:900:None:30:5', 0, 2000)}
 
-CUR_CAR = CAR_PRESETS['medium']
+if 'data.txt' not in os.listdir():
+    f = open('data.txt', 'w', encoding='utf-8')
+    data = '\n'.join(["'beginner'", '(255, 0, 0)', '(255, 255, 0)', '0', '(True, False, False, False)'])
+    f.write(data)
+    f.close()
+load_data()
 
 
 def angleTo(point2, point1):
@@ -324,14 +375,14 @@ class Particle(pygame.sprite.Sprite):
 class Player(pygame.sprite.Sprite):
     def __init__(self, x, y, colors, preset, checkpoints, laps, collider=False):
         super().__init__(all_sprites)
-        self.radius = 16
+        self.radius = 20
         self.collider = collider
         self.k = 1.4
         self.image = pygame.Surface((2 * self.radius * self.k, 2 * self.radius * self.k), pygame.SRCALPHA)
         self.rect = self.image.get_rect()
         self.particle_point = (0, 0)
 
-        self.float_pos = self.float_x, self.float_y = x - self.rect.w // 2, y - self.rect.h // 2
+        self.float_pos = self.float_x, self.float_y = x, y
         self.vx = self.vy = 0
         self.speed = 0
         self.accelerate = 0
@@ -521,67 +572,42 @@ class Player(pygame.sprite.Sprite):
         self.rect.x = self.float_x
         self.rect.y = self.float_y
 
-        self.drawUI()
+
+class Button:
+    def __init__(self, rect, text, font, command, pars=None, color=(20, 180, 0), collider=False):
+        buttons.append(self)
+        self.rect = rect
+        self.command = command
+        self.pars = pars
+        self.n_color = color
+        self.f_color = int(color[0] * 0.7), int(color[1] * 0.7), int(color[2] * 0.7)
+        self.normal_text = font.render(text, 1, color)
+        self.focused_text = font.render(text, 1, self.f_color)
+        self.text = self.normal_text
+        self.color = color
+        self.collider = collider
+
+    def draw(self):
+        screen.blit(self.text, (self.rect.x, self.rect.y))
+        if self.collider:
+            pygame.draw.rect(screen, self.color, self.rect, 5)
 
 
 def show_fps():
-    screen.blit(fps, (width - fps.get_width() - 5, height - fps.get_height() - 10))
+    screen.blit(FPS, (width - FPS.get_width() - 5, height - FPS.get_height() - 10))
 
 
-pygame.init()
-size = width, height = (1024, 768)
-screen = pygame.display.set_mode(size)
+def start_level(level):
+    global buttons, all_sprites, borders, camera, player, menu, countdown, countdown_mes
+    buttons = []
+    all_sprites = pygame.sprite.Group()
+    borders = pygame.sprite.Group()
+    camera = Camera()
+    player = load_level(level)
+    menu = False
+    countdown = pygame.time.get_ticks()
+    countdown_mes = pygame.font.Font(None, 240).render('3', 1, (0, 0, 0))
 
-CLOCK = pygame.time.Clock()
-
-RENDERFONTS = 30
-pygame.time.set_timer(RENDERFONTS, 200)
-fps = pygame.font.Font(None, 18).render(f'FPS: {int(CLOCK.get_fps())}', 1, (0, 0, 0))
-
-all_sprites = pygame.sprite.Group()
-borders = pygame.sprite.Group()
-
-camera = Camera()
-player = load_level('lvl_1.txt')
-
-
-running = True
-
-while running:
-    screen.fill((200, 200, 200))
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-
-        if event.type == RENDERFONTS:
-            fps = pygame.font.Font(None, 18).render(f'FPS: {int(CLOCK.get_fps())}', 1, (0, 0, 0))
-            if player:
-                player.renderFonts()
-
-        if event.type == pygame.KEYDOWN:
-            if event.key == 273:
-                player.accelerate = player.forward_accelerate
-            if event.key == 274:
-                player.accelerate = player.backward_accelerate
-            if event.key == 275:
-                player.rot_speed = player.max_rot_speed
-            if event.key == 276:
-                player.rot_speed = -player.max_rot_speed
-
-        if event.type == pygame.KEYUP:
-            if event.key == 273 and player.accelerate > 0:
-                player.accelerate = 0
-            if event.key == 274 and player.accelerate < 0:
-                player.accelerate = 0
-            if event.key == 275 and player.rot_speed > 0:
-                player.rot_speed = 0
-            if event.key == 276 and player.rot_speed < 0:
-                player.rot_speed = 0
-
-    show_fps()
-    TIME = CLOCK.tick() / 1000
-    all_sprites.draw(screen)
-    all_sprites.update()
     camera.update(player)
     for sprite in all_sprites:
         tip = type(sprite)
@@ -589,6 +615,243 @@ while running:
             camera.apply_border(sprite)
         else:
             camera.apply(sprite)
-    pygame.display.flip()
 
-pygame.quit()
+
+def load_menu():
+    global menu, shop, level, countdown, buttons
+    menu = True
+    shop = False
+    level = False
+    countdown = None
+    buttons = []
+    Button(pygame.Rect(80, 200, 180, 90), 'Play', pygame.font.Font(None, 120), load_selector)
+    Button(pygame.Rect(80, 300, 210, 90), 'Shop', pygame.font.Font(None, 120), load_shop)
+    Button(pygame.Rect(80, 400, 350, 90), 'Settings', pygame.font.Font(None, 120), print)
+    Button(pygame.Rect(80, 500, 170, 70), 'Exit', pygame.font.Font(None, 120), terminate)
+
+
+def load_selector():
+    global buttons
+    buttons = []
+    for i in range(12):
+        s = 'Level ' + str(i + 1)
+        lvl = 'lvl_' + str(i + 1) + '.txt'
+        Button(pygame.Rect(80, 40 + i * 45, 170, 40), s, pygame.font.Font(None, 60), start_level, pars=lvl)
+    Button(pygame.Rect(80, 650, 195, 70), 'Back', pygame.font.Font(None, 120), load_menu)
+
+
+def load_shop():
+    global shop, buttons
+    shop = True
+    buttons = []
+    Button(pygame.Rect(80, 650, 195, 70), 'Back', pygame.font.Font(None, 120), load_menu)
+    Button(pygame.Rect(70, 140, 180, 280), 'BEGINNER'.rjust(10, ' '),
+           pygame.font.Font(None, 40), select_car, pars='beginner')
+    if UNLOCKED_CARS[1]:
+        Button(pygame.Rect(300, 140, 180, 280), 'MEDIUM'.rjust(10, ' '),
+               pygame.font.Font(None, 40), select_car, pars='medium')
+    else:
+        Button(pygame.Rect(300, 140, 180, 280), ('$' + str(MEDIUM_PRICE)).rjust(11, ' '),
+               pygame.font.Font(None, 40), buy_car, pars=1)
+
+    if UNLOCKED_CARS[2]:
+        Button(pygame.Rect(530, 140, 180, 280), 'ADVANCED'.rjust(10, ' '),
+               pygame.font.Font(None, 40), select_car, pars='advanced')
+    else:
+        Button(pygame.Rect(530, 140, 180, 280), ('$' + str(ADVANCED_PRICE)).rjust(11, ' '),
+               pygame.font.Font(None, 40), buy_car, pars=2)
+
+    if UNLOCKED_CARS[3]:
+        Button(pygame.Rect(760, 140, 180, 280), 'PRO'.rjust(10, ' '),
+               pygame.font.Font(None, 40), select_car, pars='pro')
+    else:
+        Button(pygame.Rect(760, 140, 180, 280), ('$' + str(PRO_PRICE)).rjust(11, ' '),
+               pygame.font.Font(None, 40), buy_car, pars=3)
+
+    colors = []
+    for r in range(2):
+        for g in range(2):
+            for b in range(2):
+                colors.append((r * 255, g * 255, b * 255))
+    for i, color in enumerate(colors):
+        Button(pygame.Rect(500 + i * 60, 550, 50, 50), '', pygame.font.Font(None, 40),
+               change_color1, collider=True, pars=color)
+        Button(pygame.Rect(500 + i * 60, 650, 50, 50), '', pygame.font.Font(None, 40),
+               change_color2, collider=True, pars=color)
+
+
+def select_car(key):
+    global CUR_CAR
+    CUR_CAR = CAR_PRESETS[key]
+    save_data()
+
+
+def buy_car(index):
+    global BALANCE, BALANCE_MES, UNLOCKED_CARS
+    if index == 1:
+        price = MEDIUM_PRICE
+    elif index == 2:
+        price = ADVANCED_PRICE
+    else:
+        price = PRO_PRICE
+    if price <= BALANCE:
+        BALANCE -= price
+        BALANCE_MES = pygame.font.Font(None, 120).render('$' + str(BALANCE), 1, (20, 180, 0))
+        l = list(UNLOCKED_CARS)
+        l[index] = True
+        UNLOCKED_CARS = tuple(l)
+        save_data()
+        load_shop()
+
+
+def change_color1(color):
+    global COLOR_1
+    COLOR_1 = color
+    save_data()
+
+
+def change_color2(color):
+    global COLOR_2
+    COLOR_2 = color
+    save_data()
+
+
+CLOCK = pygame.time.Clock()
+
+RENDERFONTS = 30
+pygame.time.set_timer(RENDERFONTS, 200)
+init_fonts()
+
+load_menu()
+
+while True:
+    EVENTS = pygame.event.get()
+    TIME = CLOCK.tick() / 1000
+    for event in EVENTS:
+        if event.type == pygame.QUIT:
+            terminate()
+
+        if event.type == RENDERFONTS:
+            FPS = pygame.font.Font(None, 18).render(f'FPS: {int(CLOCK.get_fps())}', 1, (0, 0, 0))
+            if level:
+                player.renderFonts()
+            if countdown:
+                mes = str(3 - int(pygame.time.get_ticks() - countdown) // 1000)
+                countdown_mes = pygame.font.Font(None, 240).render(mes, 1, (0, 0, 0))
+
+    if level:
+        screen.fill((200, 200, 200))
+        for event in EVENTS:
+            if event.type == pygame.KEYDOWN:
+                if event.key == 273:
+                    player.accelerate = player.forward_accelerate
+                if event.key == 274:
+                    player.accelerate = player.backward_accelerate
+                if event.key == 275:
+                    player.rot_speed = player.max_rot_speed
+                if event.key == 276:
+                    player.rot_speed = -player.max_rot_speed
+                if event.key == 27:
+                    load_menu()
+
+            if event.type == pygame.KEYUP:
+                if event.key == 273 and player.accelerate > 0:
+                    player.accelerate = 0
+                if event.key == 274 and player.accelerate < 0:
+                    player.accelerate = 0
+                if event.key == 275 and player.rot_speed > 0:
+                    player.rot_speed = 0
+                if event.key == 276 and player.rot_speed < 0:
+                    player.rot_speed = 0
+
+        all_sprites.draw(screen)
+        player.drawUI()
+        all_sprites.update()
+        camera.update(player)
+        for sprite in all_sprites:
+            tip = type(sprite)
+            if tip == Border or tip == Checkpoint:
+                camera.apply_border(sprite)
+            else:
+                camera.apply(sprite)
+
+    elif countdown:
+        screen.fill((200, 200, 200))
+        all_sprites.draw(screen)
+        player.drawUI()
+        screen.blit(countdown_mes, (width // 2 - countdown_mes.get_width() // 2,
+                                    height // 2 - countdown_mes.get_height() // 2 - 180))
+        if pygame.time.get_ticks() - countdown >= 3000:
+            level = True
+            countdown = None
+            player.spawntime = pygame.time.get_ticks()
+
+    elif menu:
+        screen.fill((200, 200, 200))
+        if shop:
+            if UNLOCKED_CARS[0]:
+                draw_sprite2(screen, 80, 270, COLOR_1, COLOR_2, shift_x=40, shift_y=180)
+                if CUR_CAR[-2] == 1:
+                    pygame.draw.rect(screen, (20, 180, 0), (70, 170, 180, 250), 3)
+                    screen.blit(SELECT_FONT, (75, 430))
+            else:
+                draw_sprite2(screen, 80, 270, (0, 0, 0), (0, 0, 0), shift_x=40, shift_y=180)
+
+            if UNLOCKED_CARS[1]:
+                draw_sprite3(screen, 80, 270, COLOR_1, COLOR_2, shift_x=270, shift_y=180)
+                if CUR_CAR[-2] == 2:
+                    pygame.draw.rect(screen, (20, 180, 0), (300, 170, 180, 250), 3)
+                    screen.blit(SELECT_FONT, (305, 430))
+            else:
+                draw_sprite3(screen, 80, 270, (0, 0, 0), (0, 0, 0), shift_x=270, shift_y=180)
+
+            if UNLOCKED_CARS[2]:
+                draw_sprite4(screen, 80, 270, COLOR_1, COLOR_2, shift_x=500, shift_y=180)
+                if CUR_CAR[-2] == 3:
+                    pygame.draw.rect(screen, (20, 180, 0), (530, 170, 180, 250), 3)
+                    screen.blit(SELECT_FONT, (535, 430))
+            else:
+                draw_sprite4(screen, 80, 270, (0, 0, 0), (0, 0, 0), shift_x=500, shift_y=180)
+
+            if UNLOCKED_CARS[3]:
+                draw_sprite1(screen, 80, 270, COLOR_1, COLOR_2, shift_x=730, shift_y=180)
+                if CUR_CAR[-2] == 0:
+                    pygame.draw.rect(screen, (20, 180, 0), (760, 170, 180, 250), 3)
+                    screen.blit(SELECT_FONT, (765, 430))
+            else:
+                draw_sprite1(screen, 80, 270, (0, 0, 0), (0, 0, 0), shift_x=730, shift_y=180)
+            screen.blit(BALANCE_MES, (80, 30))
+
+            colors = []
+            for r in range(2):
+                for g in range(2):
+                    for b in range(2):
+                        colors.append((r * 255, g * 255, b * 255))
+            for i, color in enumerate(colors):
+                screen.blit(COLOR_1_FONT, (350, 560))
+                screen.blit(COLOR_2_FONT, (350, 660))
+                pygame.draw.rect(screen, color, (500 + i * 60, 550, 50, 50))
+                pygame.draw.rect(screen, color, (500 + i * 60, 650, 50, 50))
+        else:
+            CARS[CUR_CAR[-2]](screen, 150, 270, COLOR_1, COLOR_2, shift_x=550, shift_y=180)
+        for btn in buttons:
+            btn.draw()
+        for event in EVENTS:
+            if event.type == pygame.MOUSEMOTION:
+                for btn in buttons:
+                    if btn.rect.collidepoint(event.pos):
+                        btn.text = btn.focused_text
+                        btn.color = btn.f_color
+                    else:
+                        btn.text = btn.normal_text
+                        btn.color = btn.n_color
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                for btn in buttons:
+                    if btn.rect.collidepoint(event.pos):
+                        if btn.pars:
+                            btn.command(btn.pars)
+                        else:
+                            btn.command()
+
+    show_fps()
+    pygame.display.flip()
