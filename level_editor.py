@@ -14,6 +14,7 @@ def save(player, borders):
     c_data = []
     k = input('Enter the k value: ')
     laps = input('Enter laps amount: ')
+    time = input('Enter level time: ')
     for el in borders:
         if type(el) == tuple:
             if len(el) == 2:
@@ -26,7 +27,7 @@ def save(player, borders):
             for border in el:
                 b_data.append(((border[0][0] - player[0], border[0][1] - player[1]),
                                (border[1][0] - player[0], border[1][1] - player[1])))
-    data = '\n'.join([str(b_data), str(c_data), laps, k])
+    data = '\n'.join([str(b_data), str(c_data), laps, k, time])
     levels = os.listdir('levels')
     name = 'lvl_1.txt'
     i = 1
