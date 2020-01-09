@@ -9,7 +9,7 @@ size = width, height = (1024, 768)
 screen = pygame.display.set_mode(size)
 
 MEDIUM_PRICE = 100
-ADVANCED_PRICE = 300
+ADVANCED_PRICE = 200
 PRO_PRICE = 400
 LEVEL_MONEY = 200
 
@@ -198,6 +198,20 @@ def init_fonts():
     SELECT_FONT = pygame.font.Font(None, 40).render('*SELECTED*', 1, (20, 180, 0))
     COLOR_1_FONT = pygame.font.Font(None, 40).render('COLOR 1:', 1, (20, 180, 0))
     COLOR_2_FONT = pygame.font.Font(None, 40).render('COLOR 2:', 1, (20, 180, 0))
+
+
+def init_sounds():
+    global BUTTON_SOUND, FINISH_SOUND, LOSE_SOUND, COUNTDOWN_SOUND, THRUST_SOUND
+    BUTTON_SOUND = pygame.mixer.Sound('sounds/button.wav')
+    BUTTON_SOUND.set_volume(0.3)
+    FINISH_SOUND = pygame.mixer.Sound('sounds/finish.wav')
+    FINISH_SOUND.set_volume(0.5)
+    LOSE_SOUND = pygame.mixer.Sound('sounds/lose.flac')
+    LOSE_SOUND.set_volume(0.3)
+    COUNTDOWN_SOUND = pygame.mixer.Sound('sounds/countdown.wav')
+    COUNTDOWN_SOUND.set_volume(0.4)
+    THRUST_SOUND = pygame.mixer.Sound('sounds/thrust.wav')
+    THRUST_SOUND.set_volume(0.1)
 
 
 # Характеристики разных машин
@@ -448,9 +462,11 @@ class Player(pygame.sprite.Sprite):
         screen.blit(self.time_mes, (width - self.time_mes.get_width() - 10, 40))
 
     def death(self):
+        THRUST_SOUND.stop()
         load_death_screen()
 
     def finish(self, time):
+        THRUST_SOUND.stop()
         load_win_screen(time)
 
     def applyPreset(self, preset):
@@ -522,6 +538,7 @@ class Player(pygame.sprite.Sprite):
             self.setDir(self.dir)
 
         if self.accelerate:
+            THRUST_SOUND.play()
             self.addVector(self.accelerate * TIME, self.dir)
             if self.accelerate > 0:
                 self.particle_spawner += TIME * self.particles_pers
@@ -532,6 +549,7 @@ class Player(pygame.sprite.Sprite):
                     p.apply_pars(self.partciles_par)
                 self.particle_spawner -= int(self.particle_spawner)
         else:
+            THRUST_SOUND.stop()
             if self.speed < 3:
                 self.speed = self.vx = self.vy = 0
 
@@ -626,6 +644,7 @@ def start_level(level):
     camera = Camera()
     player, LEVEL_TIME = load_level(level)
     menu = False
+    COUNTDOWN_SOUND.play()
     countdown = pygame.time.get_ticks()
     countdown_mes = pygame.font.Font(None, 240).render('3', 1, (0, 0, 0))
 
@@ -640,7 +659,7 @@ def start_level(level):
 
 # Закгрузка меню
 def load_menu():
-    global menu, shop, level, countdown, buttons
+    global menu, shop, level, countdown, buttons, player
     menu = True
     shop = False
     level = False
@@ -654,6 +673,7 @@ def load_menu():
 # Ъкран проигрыша
 def load_death_screen():
     global buttons
+    LOSE_SOUND.play()
     load_menu()
     buttons = []
     Button(pygame.Rect(50, 150, -180, 90), 'You died', pygame.font.Font(None, 100), nothing)
@@ -664,6 +684,7 @@ def load_death_screen():
 # Экран финиша
 def load_win_screen(time):
     global buttons, BALANCE, BALANCE_MES
+    FINISH_SOUND.play()
     s_time = time // 100 / 10
     if PREV_LEVEL not in RECORDS:
         if s_time > LEVEL_TIME:
@@ -785,6 +806,7 @@ CLOCK = pygame.time.Clock()
 RENDERFONTS = 30
 pygame.time.set_timer(RENDERFONTS, 200)
 init_fonts()
+init_sounds()
 
 load_menu()
 
@@ -816,6 +838,7 @@ while True:
                 if event.key == 276:
                     player.rot_speed = -player.max_rot_speed
                 if event.key == 27:
+                    THRUST_SOUND.stop()
                     load_menu()
 
             if event.type == pygame.KEYUP:
@@ -912,6 +935,7 @@ while True:
             if event.type == pygame.MOUSEBUTTONDOWN:
                 for btn in buttons:
                     if btn.rect.collidepoint(event.pos):
+                        BUTTON_SOUND.play()
                         if btn.pars:
                             btn.command(btn.pars)
                         else:
