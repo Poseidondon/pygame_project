@@ -5,6 +5,7 @@ import sys
 import os
 
 pygame.init()
+pygame.display.set_caption('Arrow Race')
 size = width, height = (1024, 768)
 screen = pygame.display.set_mode(size)
 
@@ -637,6 +638,7 @@ def show_fps():
 # Открыване уровня
 def start_level(level):
     global buttons, all_sprites, borders, camera, player, menu, countdown, countdown_mes, PREV_LEVEL, LEVEL_TIME
+    pygame.mouse.set_visible(False)
     PREV_LEVEL = level
     buttons = []
     all_sprites = pygame.sprite.Group()
@@ -660,6 +662,7 @@ def start_level(level):
 # Закгрузка меню
 def load_menu():
     global menu, shop, level, countdown, buttons, player
+    pygame.mouse.set_visible(True)
     menu = True
     shop = False
     level = False
