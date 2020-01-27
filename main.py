@@ -5,7 +5,7 @@ import sys
 import os
 
 pygame.init()
-pygame.display.set_caption('Arrow Race')
+pygame.display.set_caption('Arrow Racer')
 size = width, height = (1024, 768)
 screen = pygame.display.set_mode(size)
 
