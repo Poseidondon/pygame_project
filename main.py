@@ -20,13 +20,18 @@ def nothing():
 
 
 def terminate():
+    """
+    Сценерий закрытия
+    """
     save_data()
     pygame.quit()
     sys.exit()
 
 
-# Загрузка уровня
 def load_level(name):
+    """
+    Загрузка уровня
+    """
     f = open('levels/' + name, 'r', encoding='utf-8')
     borders, checkpoints, laps, k, time = [eval(i) for i in f.readlines()]
     borders = [((i[0][0] * k, i[0][1] * k), (i[1][0] * k, i[1][1] * k)) for i in borders]
@@ -45,8 +50,10 @@ def load_level(name):
     return Player(0, 0, (COLOR_1, COLOR_2), CUR_CAR, checks, laps), time
 
 
-# Загрузка данных
 def load_data():
+    """
+    Загрузка данных
+    """
     global CUR_CAR, COLOR_1, COLOR_2, BALANCE, BALANCE_MES, UNLOCKED_CARS, RECORDS
     f = open('data.txt', 'r', encoding='utf-8')
     data = [eval(i) for i in f.readlines()]
@@ -60,8 +67,10 @@ def load_data():
     RECORDS = data[5]
 
 
-# Сохранение данных
 def save_data():
+    """
+    Сохранение данных
+    """
     f = open('data.txt', 'w', encoding='utf-8')
     car = "'" + list(CAR_PRESETS.keys())[list(CAR_PRESETS.values()).index(CUR_CAR)] + "'"
     data = '\n'.join([car, str(COLOR_1), str(COLOR_2), str(BALANCE), str(UNLOCKED_CARS), str(RECORDS)])
@@ -69,8 +78,10 @@ def save_data():
     f.close()
 
 
-# Функции отрисовки игрока
 def draw_sprite1(image, radius, angle, color_1, color_2, k=1.5, shift_x=0, shift_y=0):
+    """
+    Функции отрисовки игрока
+    """
     points_1 = ((shift_x + radius * k + math.cos(math.radians(angle + 100)) * radius * k * 0.35,
                  shift_y + radius * k + math.sin(math.radians(angle + 100)) * radius * k * 0.35),
                 (shift_x + radius * k, shift_y + radius * k),
@@ -192,8 +203,10 @@ def draw_sprite4(image, radius, angle, color_1, color_2, k=1.5, shift_x=0, shift
     pygame.draw.polygon(image, (0, 0, 0), points_1, 2)
 
 
-# Инициализация шрифтов
 def init_fonts():
+    """
+    Инициализация шрифтов
+    """
     global FPS, SELECT_FONT, COLOR_1_FONT, COLOR_2_FONT
     FPS = pygame.font.Font(None, 18).render(f'FPS: {int(CLOCK.get_fps())}', 1, (0, 0, 0))
     SELECT_FONT = pygame.font.Font(None, 40).render('*SELECTED*', 1, (20, 180, 0))
@@ -202,6 +215,9 @@ def init_fonts():
 
 
 def init_sounds():
+    """
+    Инициализация звуков
+    """
     global BUTTON_SOUND, FINISH_SOUND, LOSE_SOUND, COUNTDOWN_SOUND, THRUST_SOUND
     BUTTON_SOUND = pygame.mixer.Sound('sounds/button.wav')
     BUTTON_SOUND.set_volume(0.3)
@@ -243,8 +259,10 @@ def angleTo(point2, point1):
     return angle
 
 
-# Камера
 class Camera:
+    """
+    Класс камеры
+    """
     def __init__(self):
         self.dx = 0
         self.dy = 0
@@ -266,8 +284,10 @@ class Camera:
         self.dy = -(target.rect.y + target.rect.h // 2 - height // 2) + int(target.vy / target.max_speed * 0.4 * height)
 
 
-# Стенки
 class Border(pygame.sprite.Sprite):
+    """
+    Класс стенок
+    """
     def __init__(self, pos1, pos2, color=None):
         super().__init__(all_sprites)
         self.add(borders)
@@ -286,8 +306,10 @@ class Border(pygame.sprite.Sprite):
                              (pos1[0] - x1, pos1[1] - y1), (x2 - pos1[0], y2 - pos1[1]), self.thickness)
 
 
-# Чекпоинты
 class Checkpoint(pygame.sprite.Sprite):
+    """
+    Класс чекпоинтов
+    """
     def __init__(self, pos1, pos2, visible=False, finish=False):
         super().__init__(all_sprites)
         self.finish = finish
@@ -307,8 +329,10 @@ class Checkpoint(pygame.sprite.Sprite):
                              (pos1[0] - x1, pos1[1] - y1), (x2 - pos1[0], y2 - pos1[1]), 1)
 
 
-# Частицы
 class Particle(pygame.sprite.Sprite):
+    """
+    Класс частиц
+    """
     def __init__(self, pos, radius, dir=None, speed=None):
         super().__init__(all_sprites)
 
@@ -403,8 +427,10 @@ class Particle(pygame.sprite.Sprite):
                 self.kill()
 
 
-# Игрок
 class Player(pygame.sprite.Sprite):
+    """
+    Класс игрока
+    """
     def __init__(self, x, y, colors, preset, checkpoints, laps, collider=False):
         super().__init__(all_sprites)
         self.radius = 20
@@ -609,8 +635,10 @@ class Player(pygame.sprite.Sprite):
         self.rect.y = self.float_y
 
 
-# Кнопка меню
 class Button:
+    """
+    Класс кнопки
+    """
     def __init__(self, rect, text, font, command, pars=None, color=(20, 180, 0), collider=False):
         buttons.append(self)
         self.rect = rect
@@ -630,13 +658,17 @@ class Button:
             pygame.draw.rect(screen, self.color, self.rect, 5)
 
 
-# Показ фпс
 def show_fps():
+    """
+    Отображение фпс
+    """
     screen.blit(FPS, (width - FPS.get_width() - 5, height - FPS.get_height() - 10))
 
 
-# Открыване уровня
 def start_level(level):
+    """
+    Открытие уровня
+    """
     global buttons, all_sprites, borders, camera, player, menu, countdown, countdown_mes, PREV_LEVEL, LEVEL_TIME
     pygame.mouse.set_visible(False)
     PREV_LEVEL = level
@@ -659,8 +691,10 @@ def start_level(level):
             camera.apply(sprite)
 
 
-# Закгрузка меню
 def load_menu():
+    """
+    Закгрузка меню
+    """
     global menu, shop, level, countdown, buttons, player
     pygame.mouse.set_visible(True)
     menu = True
@@ -673,8 +707,10 @@ def load_menu():
     Button(pygame.Rect(80, 450, 170, 70), 'Exit', pygame.font.Font(None, 120), terminate)
 
 
-# Ъкран проигрыша
 def load_death_screen():
+    """
+    Экран проигрыша
+    """
     global buttons
     LOSE_SOUND.play()
     load_menu()
@@ -684,8 +720,10 @@ def load_death_screen():
     Button(pygame.Rect(100, 350, 150, 30), 'Try again', pygame.font.Font(None, 50), start_level, pars=PREV_LEVEL)
 
 
-# Экран финиша
 def load_win_screen(time):
+    """
+    Экран финиша
+    """
     global buttons, BALANCE, BALANCE_MES
     FINISH_SOUND.play()
     s_time = time // 100 / 10
@@ -711,8 +749,10 @@ def load_win_screen(time):
     Button(pygame.Rect(100, 350, 100, 30), 'Shop', pygame.font.Font(None, 50), load_shop)
 
 
-# Меню выбора уровня
 def load_selector():
+    """
+    Меню выбора уровня
+    """
     global buttons
     buttons = []
     for i in range(12):
@@ -724,8 +764,10 @@ def load_selector():
     Button(pygame.Rect(80, 650, 195, 70), 'Back', pygame.font.Font(None, 120), load_menu)
 
 
-# Магазин
 def load_shop():
+    """
+    Магазин
+    """
     global shop, buttons
     shop = True
     buttons = []
@@ -765,15 +807,19 @@ def load_shop():
                change_color2, collider=True, pars=color)
 
 
-# Функция смены машины
 def select_car(key):
+    """
+    Функция смены машины
+    """
     global CUR_CAR
     CUR_CAR = CAR_PRESETS[key]
     save_data()
 
 
-# Функция покупки машины
 def buy_car(index):
+    """
+    Функция покупки машины
+    """
     global BALANCE, BALANCE_MES, UNLOCKED_CARS
     if index == 1:
         price = MEDIUM_PRICE
@@ -791,8 +837,10 @@ def buy_car(index):
         load_shop()
 
 
-# Функции смены цветов
 def change_color1(color):
+    """
+    Функции смены цветов
+    """
     global COLOR_1
     COLOR_1 = color
     save_data()
